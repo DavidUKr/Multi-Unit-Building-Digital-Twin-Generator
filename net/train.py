@@ -15,7 +15,7 @@ from dataset import FloorplanDataset
 alpha=0.5
 lr=5e-4
 weight_decay=2e-5
-batch_size =10
+batch_size = 4
 num_epochs =2
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

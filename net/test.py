@@ -55,8 +55,8 @@ def find_png_by_index(search_dir, index= 14):
     return None
 
 def test():
-    input_image_path=find_png_by_index('../data/mufp_10/val/JPEGImages', index=test_image)
-    gt_path=find_png_by_index('../data/mufp_10/val/SegmentationClass', index=test_image)
+    input_image_path=find_png_by_index('../train_data/mufp_10/val/JPEGImages', index=test_image)
+    gt_path=find_png_by_index('../train_data/mufp_10/val/SegmentationClass', index=test_image)
 
     input_image = Image.open(input_image_path).convert('RGB')
     input_image = transform(input_image)
@@ -99,7 +99,8 @@ def test():
     # axes[3].imshow(Image.open(gt_path), cmap='jet')
     # axes[3].set_title('Ground Truth')
     # axes[3].axis('off')
-
+    plt.tight_layout()
+    plt.savefig('output/pred.png', format='png', dpi=300, bbox_inches='tight')
     plt.show()
 
 if __name__ == '__main__':
