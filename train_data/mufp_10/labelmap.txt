@@ -1,0 +1,13 @@
+# label:color_rgb:parts:actions
+background:0,0,0::
+appartment_unit:108,66,188::
+balcony:61,245,61::
+doorway:155,231,152::
+elevator:0,205,208::
+hallway:15,81,209::
+public_ammenity:164,123,199::
+stairwell:255,0,124::
+wall:208,32,192::
+window:250,250,55::
+
+

@@ -1,0 +1,8 @@
+data
+.venv
+experiments
+models
+
+net/runs
+net/sample_nets
+net/checkpoints
