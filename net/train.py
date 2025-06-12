@@ -15,13 +15,14 @@ from dataset import FloorplanDataset
 alpha=0.5
 lr=5e-4
 weight_decay=2e-5
-batch_size = 4
-num_epochs =5
+batch_size =10
+num_epochs =2
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+print("Loading model")
 net = model.get_model(pretrained_encoder=True, dropout=0.2)
 net= net.to(device)
+print('Loading processes to device')
 optimizer=optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay)
 wall_criterion=ACW_loss().to(device)
 room_criterion=ACW_loss().to(device)
@@ -31,6 +32,7 @@ transform=transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     #for resnet pretrained
 ])
+print("Loading dataset")
 train_dataset= FloorplanDataset(dataset_dir="../train_data/mufp_10", split='train', transform=transform)
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 test_dataset= FloorplanDataset(dataset_dir="../train_data/mufp_10", split='test', transform=transform)
@@ -95,8 +97,9 @@ def check_val_perf(test_net, summary_writer=None, global_step=None, verbose=True
 
 #Train loop
 def train():
+    print("Start training")
     writer = SummaryWriter("runs/mtfsm")
-    writer.add_graph(net, train_dataset.__getitem__(0)[0].unsqueeze(0))
+    # writer.add_graph(net, train_dataset.__getitem__(0)[0].unsqueeze(0))
     global_step = 0
     losses=[]
     steps=[]
