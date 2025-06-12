@@ -13,10 +13,12 @@ from dataset import FloorplanDataset
 
 #Hyperparameters
 alpha=0.5
-lr=5e-4
+lr=4e-4
 weight_decay=2e-5
 batch_size = 4
-num_epochs =2
+num_epochs = 500
+
+torch.cuda.empty_cache()
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("Loading model")
@@ -141,8 +143,10 @@ def train():
         
         print(f'Epoch [{epoch+1}/{num_epochs}] Loss: {running_loss/epoch_step:.4f} Last_Loss: {last_loss}')
         
-        torch.save(net.state_dict(), f'checkpoints/trained_model_ep{epoch}.pth')
-        check_val_perf(net, summary_writer=writer, global_step=global_step)
+        
+        if epoch/10==0:
+            torch.save(net.state_dict(), f'checkpoints/trained_model_ep{epoch}.pth')
+            check_val_perf(net, summary_writer=writer, global_step=global_step)
 
     writer.close()
     

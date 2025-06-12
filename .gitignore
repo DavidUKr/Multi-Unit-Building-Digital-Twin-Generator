@@ -6,3 +6,4 @@ models
 net/runs
 net/sample_nets
 net/checkpoints
+net/output

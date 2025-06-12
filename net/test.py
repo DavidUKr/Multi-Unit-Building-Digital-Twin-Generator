@@ -9,12 +9,12 @@ import matplotlib.pyplot as plt
 net = model.get_model()
 net.eval()
 
-test_epoch=33
+test_epoch=450
 test_image=20
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# net_checkpoint = torch.load(f'checkpoints_trained_model_ep{test_epoch}.pth', map_location=device)
-net_checkpoint = torch.load(f'../models/test_model.pth', map_location=device)
+net_checkpoint = torch.load(f'checkpoints/trained_model_ep{test_epoch}.pth', map_location=device)
+# net_checkpoint = torch.load(f'../models/test_model.pth', map_location=device)
 net.load_state_dict(net_checkpoint)
 net.eval()
 
