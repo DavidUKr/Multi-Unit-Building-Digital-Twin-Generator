@@ -98,7 +98,10 @@ def split_image_masks():
     if floorplan.filename == '':
             return {'error': 'Empty filename'}, 400
     print("Splitting the floorplan")
-    response['floorplan'] = utils.split(input=utils.file_to_image(floorplan, to_PIL_Image=True), num_horizontal_splits=num_horizontal_splits, num_vertical_splits=num_vertical_splits)
+    response['floorplan'] = utils.split(
+        input=utils.file_to_image(floorplan, to_PIL_Image=True), 
+        num_horizontal_splits=num_horizontal_splits, 
+        num_vertical_splits=num_vertical_splits)
 
     print("Form keys received:", list(request.form.keys()))  # Debug log
     for key in request.form:

@@ -87,7 +87,6 @@ class FloorplanDataset(Dataset):
 
         if self.transform:
             image = self.transform(image)
-            # Use nearest-neighbor for masks to preserve class indices
             mask_transform = transforms.Compose([
                 # transforms.ToPILImage(),  # Convert NumPy array to PIL Image for spatial transforms
                 # # filter transforms from self.transforms for mask specific tranformations
