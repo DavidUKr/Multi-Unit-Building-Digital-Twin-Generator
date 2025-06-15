@@ -15,10 +15,11 @@ from memory_profiler import profile
 
 #Hyperparameters
 alpha=0.5
+# lr=5e-4
 lr=5e-4
 # weight_decay=2e-5
 weight_decay=0
-batch_size = 5
+batch_size = 10
 num_epochs = 500
 
 # torch.cuda.empty_cache()
@@ -87,8 +88,7 @@ def train(resume_from_epoch=None):
     
     print("Loading model on ", device)
     net = model.get_model(pretrained_encoder=True, dropout=0.0).to(device)
-    optimizer = optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay)
-
+    optimizer=optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay)
     start_epoch = 0
     global_step = 0
     
@@ -107,7 +107,7 @@ def train(resume_from_epoch=None):
             print(f"Checkpoint file not found at {checkpoint_path}. Starting from scratch.")
 
     print('Loading processes to device')
-    optimizer=optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay)
+    
     wall_criterion=ACW_loss().to(device)
     room_criterion=ACW_loss().to(device)
 
@@ -123,7 +123,7 @@ def train(resume_from_epoch=None):
     test_loader= DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     print("Start training")
-    writer = SummaryWriter("runs/mtfsm_san_noSCGloss_run6")
+    writer = SummaryWriter("runs/mtfsm_san_onesample_run3-10samples")
     # writer.add_graph(net, train_dataset.__getitem__(0)[0].unsqueeze(0))
     writer.add_scalar('alpha', alpha, 0)
     writer.add_scalar('lr', lr, 0)
@@ -131,9 +131,6 @@ def train(resume_from_epoch=None):
     writer.add_scalar('weight_decay', weight_decay, 0)
     writer.add_scalar('num_epochs', num_epochs, 0)
     
-    
-    losses=[]
-    steps=[]
 
     net.train()
 
@@ -155,22 +152,26 @@ def train(resume_from_epoch=None):
             # room_loss=room_scg_loss+room_criterion(room_out, room_masks)
             room_loss=room_criterion(room_out, room_masks)
             loss=alpha*room_loss + (1-alpha)*wall_loss
-            print(f'Step {i} (global {global_step}) losses:', 'wall:', wall_loss.item(),'room:', room_loss.item(),'total:', loss.item())
-
-            #Visualization
-            writer.add_scalar('Loss', loss.item(), global_step)
-            losses.append(loss.item())
-            steps.append(global_step)
-            global_step += 1
-            epoch_step += 1
-            running_loss+= loss.item()
-            last_loss= loss.item()
             
             #backward
+            optimizer.zero_grad()
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0) #gradient clipping to prevent exploding gradients
             optimizer.step()
+
+            loss_item=loss.item()
+
+            print(f'Step {i} (global {global_step}) losses:', 'wall:', wall_loss.item(),'room:', room_loss.item(),'total:', loss_item)
+
+            #Visualization
+            writer.add_scalar('Loss', loss_item, global_step)
+            global_step += 1
+            epoch_step += 1
+            running_loss+= loss_item
+            last_loss= loss_item
         
         print(f'Epoch [{epoch}/{num_epochs}] Loss: {running_loss/epoch_step:.4f} Last_Loss: {last_loss}')
+        writer.add_scalar('running_loss', running_loss, global_step)
         
         if (epoch) % 10 == 0:
             try:

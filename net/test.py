@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 net = model.get_model()
 net.eval()
 
-test_epoch=40
-test_image=20
+test_epoch=400
+test_image=22
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 net_checkpoint = torch.load(f'checkpoints/trained_model_ep{test_epoch}.pth', map_location=device)
@@ -80,7 +80,6 @@ def test():
     gt_mask= Image.open(gt_path).convert('RGB')
     gt_mask_np=np.array(gt_mask)
 
-
     fig, axes = plt.subplots(1, 3, figsize=(24, 8))
 
     axes=axes.flatten()
@@ -101,6 +100,8 @@ def test():
     # axes[3].imshow(Image.open(gt_path), cmap='jet')
     # axes[3].set_title('Ground Truth')
     # axes[3].axis('off')
+
+    
     plt.tight_layout()
     plt.savefig('output/pred.png', format='png', dpi=300, bbox_inches='tight')
     plt.show()
