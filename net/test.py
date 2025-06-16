@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 net = model.get_model()
 net.eval()
 
-test_epoch=400
-test_image=22
+test_epoch=490
+test_image=20
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 net_checkpoint = torch.load(f'checkpoints/trained_model_ep{test_epoch}.pth', map_location=device)

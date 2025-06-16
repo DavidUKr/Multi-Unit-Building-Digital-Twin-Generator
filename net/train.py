@@ -19,7 +19,7 @@ alpha=0.5
 lr=5e-4
 # weight_decay=2e-5
 weight_decay=0
-batch_size = 10
+batch_size = 5
 num_epochs = 500
 
 # torch.cuda.empty_cache()
@@ -123,7 +123,7 @@ def train(resume_from_epoch=None):
     test_loader= DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     print("Start training")
-    writer = SummaryWriter("runs/mtfsm_san_onesample_run3-10samples")
+    writer = SummaryWriter("runs/mtfsm_san_onesample_run5-10s_roomloss")
     # writer.add_graph(net, train_dataset.__getitem__(0)[0].unsqueeze(0))
     writer.add_scalar('alpha', alpha, 0)
     writer.add_scalar('lr', lr, 0)
@@ -140,7 +140,6 @@ def train(resume_from_epoch=None):
         last_loss=0.0
         epoch_step=0
 
-        # for i, (images, wall_masks, room_masks) in enumerate(train_loader):
         for i, (images, wall_masks, room_masks) in enumerate(train_loader):
             images=images.to(device)
             wall_masks=wall_masks.to(device)
@@ -149,8 +148,8 @@ def train(resume_from_epoch=None):
             wall_out, room_out, graph_out, room_scg_loss=net(images)
             #loss
             wall_loss=wall_criterion(wall_out, wall_masks)
-            # room_loss=room_scg_loss+room_criterion(room_out, room_masks)
-            room_loss=room_criterion(room_out, room_masks)
+            room_loss=room_scg_loss+room_criterion(room_out, room_masks)
+            # room_loss=room_criterion(room_out, room_masks)
             loss=alpha*room_loss + (1-alpha)*wall_loss
             
             #backward
