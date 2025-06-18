@@ -1,23 +1,33 @@
 import mtfsm as model
 import torch
+import torch.nn.functional as F
 from torchvision import transforms
+from torchmetrics import JaccardIndex
+from acw_loss import ACW_loss
 import os, re
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+# import networkx as nx
 
 
 
 net = model.get_model()
 net.eval()
 
-test_epoch=490
+test_epoch=480
 test_image=20
+models_folder=False
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-net_checkpoint = torch.load(f'checkpoints/trained_model_ep{test_epoch}.pth', map_location=device)
-# net_checkpoint = torch.load(f'../models/test_model.pth', map_location=device)
-net.load_state_dict(net_checkpoint['model_state_dict'])
+
+if models_folder:
+    net_checkpoint = torch.load(f'../models/mtfsm_drp_10s.pth', map_location=device)
+    net.load_state_dict(net_checkpoint)
+else:
+    net_checkpoint = torch.load(f'checkpoints/trained_model_ep{test_epoch}.pth', map_location=device)
+    net.load_state_dict(net_checkpoint['model_state_dict'])
+
 net.eval()
 
 transform=transforms.Compose([
@@ -67,20 +77,29 @@ def test():
     with torch.no_grad():
         wall_pred, room_pred, graph, room_loss = net(input_image)
 
-    print("wall unique values before argmax", np.unique(wall_pred))
-    print("room", np.unique(room_pred))
-
     wall_mask = torch.argmax(wall_pred, dim=1).squeeze(0)  # Shape: (1024, 1024)
-    room_mask = torch.argmax(room_pred, dim=1).squeeze(0)  
+    room_mask = torch.argmax(room_pred, dim=1).squeeze(0)
+    # graph = graph.squeeze(0).cpu().numpy()
+    # graph = nx.from_numpy_array(graph)
+    
+    combined_mask=room_mask.clone()
+    #shift room class values
+    non_zero_px=(combined_mask !=0)
+    combined_mask[non_zero_px]+=3
 
-    print("wall after argmax", np.unique(wall_mask))
+    for i in range(1,4): # without 0 - background
+        wall_pixels= (wall_mask == i)
+        combined_mask[wall_pixels]=i
+
+    sep_masks=F.one_hot(combined_mask, num_classes=10)
+    sep_masks=sep_masks.permute(2,0,1)
+    
+    print("Values")
+    print("wall", np.unique(wall_mask))
     print("room", np.unique(room_mask))
+    print("combined", np.unique(combined_mask))
 
-    #ground truth
-    gt_mask= Image.open(gt_path).convert('RGB')
-    gt_mask_np=np.array(gt_mask)
-
-    fig, axes = plt.subplots(1, 3, figsize=(24, 8))
+    fig, axes = plt.subplots(1, 4, figsize=(32, 8))
 
     axes=axes.flatten()
     show_image = input_image.permute(0, 2, 3, 1).squeeze(0).cpu().numpy()  # Shape: (1024, 1024, 3)
@@ -97,13 +116,36 @@ def test():
     axes[2].set_title('Functional Spaces (Room Mask)')
     axes[2].axis('off')
 
-    # axes[3].imshow(Image.open(gt_path), cmap='jet')
-    # axes[3].set_title('Ground Truth')
+    axes[3].imshow(combined_mask.cpu().numpy(), cmap='tab10')  # Specify vmin/vmax for 7 classes
+    axes[3].set_title('Combined Mask')
+    axes[3].axis('off')
+
+    # nx.draw(
+    #     graph, 
+    #     ax=axes[3],
+    #     with_labels=True, 
+    #     node_color='skyblue', 
+    #     node_size=800, 
+    #     edge_color='gray', 
+    #     width=2.0,
+    #     pos=nx.spring_layout(graph, seed=42) # Use a layout for consistent positioning
+    # )
+    # axes[3].set_title('Graph')
     # axes[3].axis('off')
 
     
     plt.tight_layout()
     plt.savefig('output/pred.png', format='png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+    fig, axes = plt.subplots(2,5, figsize=(20, 10))
+    axes=axes.flatten()
+    for i in range(10):
+        axes[i].imshow(sep_masks[i], cmap='jet')
+        axes[i].set_title(f'Mask #{i}')
+        axes[i].axis('off')
+    
+    plt.tight_layout()
     plt.show()
 
 if __name__ == '__main__':

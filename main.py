@@ -121,7 +121,7 @@ def split_image_masks():
 
                 print(f'Splitting {key}')
                 response['segmentation'][class_name] = utils.split(
-                    img,  # Pass PIL Image directly
+                    img,
                     num_horizontal_splits,
                     num_vertical_splits
                 )

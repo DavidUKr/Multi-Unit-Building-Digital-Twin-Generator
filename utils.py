@@ -24,9 +24,9 @@ def tensor_to_pngs(spatial, target_width=0, target_height=0, threshold=0.5):
     pngs = []
     
     # Process each channel
-    for c in range(spatial.shape[2]):
+    for c in range(spatial.shape[0]):
         # Extract channel
-        channel = spatial[:, :, c]  # Shape: (1060, 1130)
+        channel = spatial[c, :, :]  # shape (W,H)
         
         # Binarize channel (if not already binary)
         if not np.all(np.logical_or(channel == 0, channel == 1)):  # Check if non-binary
@@ -39,7 +39,7 @@ def tensor_to_pngs(spatial, target_width=0, target_height=0, threshold=0.5):
             channel = cv2.resize(channel, (target_width, target_height), interpolation=cv2.INTER_NEAREST)
         
         # Scale to 0 and 255 for PNG
-        channel = channel * 255  # Shape: (9000, 6000), values: 0 or 255
+        channel = channel * 255
         
         # Create grayscale PNG
         img = Image.fromarray(channel, mode="L")  # Grayscale image

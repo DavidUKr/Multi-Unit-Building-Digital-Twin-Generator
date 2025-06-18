@@ -1,29 +1,28 @@
 import numpy as np
 from PIL import Image
+import cv2
 import utils
 import torch
+import torch.nn.functional as F
 import torchvision.transforms as transforms
 
-import net.res_u_net as net
+import net.mtfsm as mtfsm
 
-# model=net.get_model()
-# model=model.cuda() if torch.cuda.is_available() else model
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-# model_checkpoint=torch.load('net/test_model.pth', map_location=device)
-# model.load_state_dict(model_checkpoint)
-# model.eval()
-# # checkpoint = torch.load("path_to_checkpoint.pth")
-# model.load_state_dict(checkpoint['model_state_dict'])
+net=mtfsm.get_model()
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model_checkpoint=torch.load('models/sanity-room_loss/mtfsm_san_10s.pth', map_location=device)
+net.load_state_dict(model_checkpoint)
+net.eval()
 
 def get_predictions(image_file):
-    image_rgb = Image.open(image_file).convert("RGB" )
-
-    #save for dimension integrity
-    width, height = image_rgb.size
+    image = cv2.imread(image_file)
+    width, height, _ = image_rgb.shape
+    image_resized=cv2.resize(image, (1024,1024), interpolation=cv2.INTER_AREA)
+    image_rgb=cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
 
     predictions= run(image_rgb)
 
-    prediction_pngs = utils.tensor_to_pngs(predictions["segmentation"], target_width=width, target_height=height, threshold=0.9)
+    prediction_pngs = utils.tensor_to_pngs(predictions["segmentation"], target_width=width, target_height=height)
 
     output = {
         "segmentation": [
@@ -37,28 +36,41 @@ def get_predictions(image_file):
     return output
 
 def run(image):
-    # preprocess = transforms.Compose([
-    #         transforms.ToTensor(),  # Converts (H, W, C) to (C, H, W), scales [0, 255] to [0, 1]
-    #         # transforms.Normalize(),
-    #     ])
-    # input_tensor = preprocess(image).unsqueeze(0)  # Shape: (1, 3, 1024, 1024)
-    # input_tensor = input_tensor.cuda() if torch.cuda.is_available() else input_tensor
+    transform=transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
 
-    # with torch.no_grad():
-    #         output = model(input_tensor)  # Shape: (1, num_classes, 1024, 1024)
-    #         predictions = torch.argmax(output, dim=1).squeeze(0).cpu().numpy()  # Shape: (1024, 1024)
+    input_tensor =transform(image).unsqueeze(0)  # Shape: (1, 3, 1024, 1024)
+    input_tensor = input_tensor.cuda() if torch.cuda.is_available() else input_tensor
 
-    #     # Convert predictions to a JSON-serializable format
-    # wall_output = predictions.tolist()  # Convert NumPy array to list for JSON
+    with torch.no_grad():
+            wall_pred, room_pred, graph, room_loss = net(input_tensor)
+
+    wall_mask = torch.argmax(wall_pred, dim=1).squeeze(0)  # Shape: (1024, 1024)
+    room_mask = torch.argmax(room_pred, dim=1).squeeze(0)
+    # TODO: process graph
+    
+    combined_mask=room_mask.clone()
+    #shift room class values
+    non_zero_px=(combined_mask !=0)
+    combined_mask[non_zero_px]+=3
+
+    for i in range(1,4): # skip 0 - background
+        wall_pixels= (wall_mask == i)
+        combined_mask[wall_pixels]=i
+
+    sep_masks=F.one_hot(combined_mask, num_classes=10)
+    sep_masks=sep_masks.permute(2,0,1)
 
 
     output = {
-    "segmentation": torch.randn(512, 512, 9),  # 512x512x9 for 6 space + 3 object classes
+    "segmentation": sep_masks,
     "graph": {
         "nodes": [
-            {"id": 0, "x": 100, "y": 200, "type": "bathroom", "confidence": 0.95},
+            {"id": 0, "x": 100, "y": 200, "type": "appartment_unit", "confidence": 0.95},
             {"id": 1, "x": 300, "y": 250, "type": "hallway", "confidence": 0.90},
-            {"id": 2, "x": 400, "y": 150, "type": "hallway", "confidence": 0.94},
+            {"id": 2, "x": 400, "y": 150, "type": "stairwell", "confidence": 0.94},
             # ... dynamic number of nodes
         ],
         "edges": [
@@ -70,13 +82,14 @@ def run(image):
     "class_map":{
         "background":0,
         "wall":1,
-        "oppening":2,
-        "bathroom": 3,
-        "hallway": 4,
-        "appartment_unit": 5,
+        "doorway":2,
+        "window": 3,
+        "appartment_unit": 4,
+        "hallway": 5,
         "elevator": 6,
         "stairwell": 7,
-        "leisure_area": 8
+        "public_ammenity": 8,
+        "balcony": 9
     },
 }
 

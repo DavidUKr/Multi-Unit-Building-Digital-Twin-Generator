@@ -33,10 +33,6 @@ class FloorplanDataset(Dataset):
         self.wall_class_to_idx={cls:idx for idx, cls in enumerate(self.wall_classes)}
         self.room_class_to_idx={cls:idx for idx, cls in enumerate(self.room_classes)}
 
-        # print("label to rgb", self.label_to_rgb)
-        # print("wall class to index", self.wall_class_to_idx)
-        # print("room class to index", self.room_class_to_idx)
-
     def _get_labelmap(self, path):
         """
         Parse the labelmap.txt file to map labels to RGB colors.

@@ -17,14 +17,14 @@ from memory_profiler import profile
 alpha=0.5
 # lr=5e-4
 lr=5e-4
-# weight_decay=2e-5
-weight_decay=0
+weight_decay=2e-5
+dropout=0.2
 batch_size = 5
 num_epochs = 500
 
 # torch.cuda.empty_cache()
 
-def validate_model(net, val_loader, wall_criterion, room_criterion, device, D=0.5):
+def validate_model(net, val_loader, wall_criterion, room_criterion, device, D=0.5, accuracy=False):
     net.eval()
     val_loss = 0.0
     wall_iou_metric = JaccardIndex(task='multiclass', num_classes=4).to(device)
@@ -49,30 +49,35 @@ def validate_model(net, val_loader, wall_criterion, room_criterion, device, D=0.
             room_iou_metric.update(room_preds, room_masks)
 
             # Compute pixel accuracy
-            wall_correct += (wall_preds == wall_masks).sum().item()
-            wall_total += wall_masks.numel()
-            room_correct += (room_preds == room_masks).sum().item()
-            room_total += room_masks.numel()
+            if accuracy:
+                wall_correct += (wall_preds == wall_masks).sum().item()
+                wall_total += wall_masks.numel()
+                room_correct += (room_preds == room_masks).sum().item()
+                room_total += room_masks.numel()
+    net.train()
 
     avg_val_loss = val_loss / len(val_loader)
     wall_iou = wall_iou_metric.compute().item()
     room_iou = room_iou_metric.compute().item()
-    wall_accuracy = wall_correct / wall_total
-    room_accuracy = room_correct / room_total
+    if accuracy:
+        wall_accuracy = wall_correct / wall_total
+        room_accuracy = room_correct / room_total
 
-    net.train()  # Restore training mode
-    return avg_val_loss, wall_iou, room_iou, wall_accuracy, room_accuracy
+        return avg_val_loss, wall_iou, room_iou, wall_accuracy, room_accuracy
+    
+    return avg_val_loss, wall_iou, room_iou
 
 def check_val_perf(net, test_loader, wall_criterion, room_criterion, device, summary_writer=None, global_step=None, verbose=True):
     print("Validation performance")
-    avg_val_loss, wall_iou, room_iou, wall_accuracy, room_accuracy=validate_model(net, test_loader, wall_criterion, room_criterion, device)
+    # avg_val_loss, wall_iou, room_iou, wall_accuracy, room_accuracy=validate_model(net, test_loader, wall_criterion, room_criterion, device)
+    avg_val_loss, wall_iou, room_iou=validate_model(net, test_loader, wall_criterion, room_criterion, device)
 
     if summary_writer and global_step:
         summary_writer.add_scalar('avg_val_loss', avg_val_loss, global_step)
         summary_writer.add_scalar("wall_iou:", wall_iou, global_step)
         summary_writer.add_scalar("room_iou:", room_iou, global_step)
-        summary_writer.add_scalar("wall_accuracy:", wall_accuracy, global_step)
-        summary_writer.add_scalar("room_accuracy:", room_accuracy, global_step)
+        # summary_writer.add_scalar("wall_accuracy:", wall_accuracy, global_step)
+        # summary_writer.add_scalar("room_accuracy:", room_accuracy, global_step)
 
     if verbose:
         print("avg_val_loss:", avg_val_loss)
@@ -84,10 +89,15 @@ def check_val_perf(net, test_loader, wall_criterion, room_criterion, device, sum
 #Train loop
 @profile
 def train(resume_from_epoch=None):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
+    if torch.cuda.is_available():
+        device='cuda'
+    elif torch.backends.mps.is_available():
+        device='mps'
+    else:
+        device='cpu'
     print("Loading model on ", device)
-    net = model.get_model(pretrained_encoder=True, dropout=0.0).to(device)
+    
+    net = model.get_model(pretrained_encoder=True, dropout=dropout).to(device)
     optimizer=optim.Adam(net.parameters(), lr=lr, weight_decay=weight_decay)
     start_epoch = 0
     global_step = 0
@@ -123,7 +133,7 @@ def train(resume_from_epoch=None):
     test_loader= DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     print("Start training")
-    writer = SummaryWriter("runs/mtfsm_san_onesample_run5-10s_roomloss")
+    writer = SummaryWriter("runs/mtfsm_san_run7-10s_wd")
     # writer.add_graph(net, train_dataset.__getitem__(0)[0].unsqueeze(0))
     writer.add_scalar('alpha', alpha, 0)
     writer.add_scalar('lr', lr, 0)
@@ -160,7 +170,7 @@ def train(resume_from_epoch=None):
 
             loss_item=loss.item()
 
-            print(f'Step {i} (global {global_step}) losses:', 'wall:', wall_loss.item(),'room:', room_loss.item(),'total:', loss_item)
+            print(f'Step {i} (global {global_step}) losses: wall: {wall_loss.item():.4f} room: {room_loss.item():.4f} total:  {loss_item:.4f}')
 
             #Visualization
             writer.add_scalar('Loss', loss_item, global_step)
@@ -172,7 +182,7 @@ def train(resume_from_epoch=None):
         print(f'Epoch [{epoch}/{num_epochs}] Loss: {running_loss/epoch_step:.4f} Last_Loss: {last_loss}')
         writer.add_scalar('running_loss', running_loss, global_step)
         
-        if (epoch) % 10 == 0:
+        if (epoch) % 10 == 0: #Validation at 10th epoch
             try:
                 checkpoint_path = f'checkpoints/trained_model_ep{epoch}.pth'
                 print(f"Saving checkpoint to {checkpoint_path}")
@@ -187,8 +197,23 @@ def train(resume_from_epoch=None):
                 print("Could not save checkpoint -> error: ", e)
             check_val_perf(net, test_loader, wall_criterion, room_criterion, device, writer, global_step)
 
-    writer.close()
+    #Saving and validating last epoch
+    try:
+        checkpoint_path = f'checkpoints/trained_model_ep{num_epochs}.pth'
+        print(f"Saving checkpoint to {checkpoint_path}")
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': net.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'global_step': global_step,
+            'loss': last_loss, # Or the average loss for the epoch
+        }, checkpoint_path)
+    except Exception as e:
+        print("Could not save checkpoint -> error: ", e)
+    check_val_perf(net, test_loader, wall_criterion, room_criterion, device, writer, global_step)
     
+    writer.close()
+    #Saving as plain parameter checkpoint
     torch.save(net.state_dict(), '../models/test_model.pth')
     print("Complete - saved trained model")
 
