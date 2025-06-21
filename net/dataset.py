@@ -102,6 +102,18 @@ class FloorplanDataset(Dataset):
 
         return image, wall_mask, room_mask
     
+    def split_rgb_mask_per_class(self, mask):
+        mask=np.array(mask)
+        class_list=self.wall_classes+self.room_classes[1:]
+        class_to_idx= {cls:idx for idx,cls in enumerate(class_list)}
+        split_mask=np.zeros((mask.shape[0], mask.shape[1]), dtype=np.int64)
+
+        for label, rgb in self.label_to_rgb.items():
+            c_pixels= (mask == rgb).all(axis=2)
+            split_mask[c_pixels]=class_to_idx[label]
+
+        return split_mask 
+
 
 if __name__ == "__main__":
 
@@ -151,3 +163,5 @@ if __name__ == "__main__":
         count=count+1
 
     print(count)
+
+
