@@ -180,3 +180,41 @@ def reconstruct(tiles, full_width, full_height, tiles_width, tiles_height):
             reconstructed_image.paste(tile, (paste_x, paste_y))
 
     return reconstructed_image
+
+def extract_contours(image_mask):
+    """
+    Takes a 2D numpy array mask (0 for background, 255 for walls) and
+    extracts the outer and inner wall contours.
+    """
+    mask_array=np.array(image_mask)
+    mask_array_uint8 = np.uint8(mask_array) #required by findContours
+
+    contours, hierarchy = cv2.findContours(mask_array_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+
+    if hierarchy is None:
+        return {"outers": [], "holes": []}
+        
+    outers = []
+    holes = []
+    for i, contour in enumerate(contours):
+
+        unique_points = set(map(tuple, contour.squeeze()))
+        if len(unique_points) < 3:
+            print(f"Skipping degenerate contour {i}: It only has {len(unique_points)} unique points.")
+            continue
+
+        # epsilon = 0.01 * cv2.arcLength(contour, True)
+        # approx_contour = cv2.approxPolyDP(contour, epsilon, True)
+        # points = approx_contour.squeeze().tolist()
+
+        points = contour.squeeze().tolist()
+
+        if not isinstance(points[0], list):
+            points = [points]
+
+        if hierarchy[0][i][3] == -1: # No parent, so it's an outer contour
+            outers.append(points)
+        else: # It has a parent, so it's a hole
+            holes.append(points)
+
+    return {"outers": outers, "holes": holes}

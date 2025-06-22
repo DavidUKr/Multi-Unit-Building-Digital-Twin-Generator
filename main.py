@@ -135,7 +135,7 @@ def split_image_masks():
 
     return response
 
-#implemented in fronted, big payload
+#implemented in frontend, big payload
 @app.route('/reconstruct', methods=['POST'])
 def reconstruct_image_masks():
     
@@ -152,5 +152,20 @@ def reconstruct_image_masks():
 
     return segmentation, 200
 
+@app.route('/digitaltwin', methods=['POST'])
+def build_digital_twin():
+    
+    wall_mask = request.form['segmentation_wall']
+
+    if 'base64,' in wall_mask:
+        wall_mask = wall_mask.split('base64,')[1]        
+    
+    img=utils.base64_to_Image(wall_mask)
+
+    wall_countours=utils.extract_contours(img)
+
+    return jsonify(wall_countours)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5050, debug=True)
+
