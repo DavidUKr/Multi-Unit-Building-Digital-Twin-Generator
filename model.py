@@ -14,7 +14,7 @@ import net.mtfsm as mtfsm
 
 net=mtfsm.get_model()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model_checkpoint=torch.load('models/sanity-room_loss/mtfsm_san_10s.pth', map_location=device)
+model_checkpoint=torch.load('models/mtfsm_san_10s.pth', map_location=device)
 net.load_state_dict(model_checkpoint)
 net.eval()
 
