@@ -11,7 +11,7 @@ import utils
 import sam
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # for receiving reconstruction layers
+app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024 # for receiving reconstruction layers
 CORS(app)  # Enable CORS for all routes
 
 
@@ -22,7 +22,6 @@ if not os.path.exists(MASKS_DIR):
 @app.route('/get_SAM_embedding', methods=['POST'])
 def get_SAM_embedding():
     try:
-        # Check if an image file was uploaded
         if 'image' not in request.files:
             return {'error': 'No image provided'}, 400
 
@@ -30,10 +29,8 @@ def get_SAM_embedding():
         if image_file.filename == '':
             return {'error': 'Empty filename'}, 400
 
-        # Read and preprocess image
         embedding_bytes=sam.get_embedding(image_file)
 
-        # Return embedding as binary response
         return send_file(
             BytesIO(embedding_bytes),
             mimetype='application/octet-stream'
@@ -61,7 +58,7 @@ def save_mask():
     
 @app.route('/predict', methods=['POST'])
 def get_predictions():
-    # try:
+    try:
         if 'image' not in request.files:
             return {'error': 'No image provided'}, 400
 
@@ -74,9 +71,9 @@ def get_predictions():
         json_output = json.dumps(output)
 
         return json_output
-    # except Exception as e:
-    #     print(str(e))
-    #     return {'error': "INTERNAL SERVER ERROR"}, 500
+    except Exception as e:
+        print(str(e))
+        return {'error': "INTERNAL SERVER ERROR"}, 500
 
 @app.route('/split', methods=['POST'])
 def split_image_masks():
@@ -109,11 +106,8 @@ def split_image_masks():
             class_name = key[len('segmentation_'):]  # e.g., 'wall' from 'segmentation_wall'
             base64_string = request.form[key]
             if not base64_string:
-                continue  # Skip empty strings
-
-            # Decode base64 to image
+                continue  
             try:
-                # Handle optional "data:image/png;base64," prefix
                 if 'base64,' in base64_string:
                     base64_string = base64_string.split('base64,')[1]
                 

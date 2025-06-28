@@ -3,7 +3,8 @@ import torch.nn as nn
 import torchvision.models as models
 import torch.nn.functional as F
 
-from net.scg_gcn import SCG_block, GCN_Layer
+# from net.scg_gcn import SCG_block, GCN_Layer
+from scg_gcn import SCG_block, GCN_Layer
 
 #Multi-Taks Floorplan Segmentation Model
 

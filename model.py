@@ -60,8 +60,6 @@ def run(image):
 
     wall_mask = torch.argmax(wall_pred, dim=1).squeeze(0)  # Shape: (1024, 1024)
     room_mask = torch.argmax(room_pred, dim=1).squeeze(0)
-    # TODO: process graph
-    
     combined_mask=room_mask.clone()
     wall_filtered_mask=room_mask.clone()
     #shift room class values
@@ -84,9 +82,7 @@ def run(image):
     room_graph, room_ids, room_pos, room_names=get_graph_from_prediction(
         wall_filt_np, 
         graph_np, 
-        ['appartment_unit', 'hallway', 'elevator', 
-        'stairwell', 'public_ammenity', 'balcony'])
-    
+        ['appartment_unit', 'hallway', 'elevator', 'stairwell', 'public_ammenity', 'balcony'])
     G_rooms = nx.from_numpy_array(room_graph)
     relabel_mapping = {i: room_ids[i] for i in range(len(room_ids))}
     G_rooms = nx.relabel_nodes(G_rooms, relabel_mapping, copy=False)
@@ -95,7 +91,6 @@ def run(image):
     conn_threshold=4
     edges_to_remove = [(u, v) for u, v, data in G_rooms.edges(data=True) if data['weight'] < conn_threshold]
     G_rooms.remove_edges_from(edges_to_remove)    
-
     G_safe= make_graph_json_safe(G_rooms, room_pos, room_names)
     graph_dict= json_graph.node_link_data(G_safe)
     graph_json= json.dumps (graph_dict, indent=4)
@@ -104,19 +99,10 @@ def run(image):
     "segmentation": sep_masks,
     "graph": graph_json,
     "class_map":{
-        "background":0,
-        "wall":1,
-        "doorway":2,
-        "window": 3,
-        "appartment_unit": 4,
-        "hallway": 5,
-        "elevator": 6,
-        "stairwell": 7,
-        "public_ammenity": 8,
-        "balcony": 9
+        "background":0, "wall":1, "doorway":2, "window": 3, "appartment_unit": 4,
+        "hallway": 5, "elevator": 6, "stairwell": 7, "public_ammenity": 8, "balcony": 9
     },
 }
-
     return output
 
 def process_image(img, target_size=(1024,1024), enhance_brightness=True,

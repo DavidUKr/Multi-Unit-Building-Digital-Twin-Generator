@@ -133,7 +133,7 @@ def train(resume_from_epoch=None):
     test_loader= DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     print("Start training")
-    writer = SummaryWriter("runs/mtfsm_san_run7-10s_wd")
+    writer = SummaryWriter("runs/mtfsm_val_run1")
     # writer.add_graph(net, train_dataset.__getitem__(0)[0].unsqueeze(0))
     writer.add_scalar('alpha', alpha, 0)
     writer.add_scalar('lr', lr, 0)

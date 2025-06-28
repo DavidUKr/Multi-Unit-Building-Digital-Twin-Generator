@@ -19,14 +19,14 @@ from dataset import FloorplanDataset
 net = model.get_model()
 net.eval()
 
-test_epoch=480
-test_image=20
-models_folder=False
+test_epoch=130
+test_image=27
+models_folder=True
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 if models_folder:
-    net_checkpoint = torch.load(f'../models/sanity_checks/mtfsm_sc_1s.pth', map_location=device)
+    net_checkpoint = torch.load(f'../models/mtfsm_wd_10s.pth', map_location=device)
     # net.load_state_dict(net_checkpoint)
     net.load_state_dict(net_checkpoint['model_state_dict'])
 else:
@@ -179,8 +179,8 @@ def test():
     room_graph, room_ids, room_pos, room_names=get_graph_from_prediction(
         wall_filt_np, 
         graph_np, 
-        ['appartment_unit', 'hallway', 'elevator', 
-        'stairwell', 'public_ammenity', 'balcony'])
+        ['A', 'H', 'E', 
+        'S', 'P', 'B'])
 
     print("Values")
     print("wall", np.unique(wall_mask))
@@ -228,12 +228,12 @@ def test():
     #Color the nodes:
     cmap = plt.get_cmap('tab10')
     color_map = {
-        'appartment_unit': cmap(0),
-        'hallway':         cmap(1),
-        'elevator':        cmap(2),
-        'stairwell':       cmap(3),
-        'public_ammenity': cmap(4),
-        'balcony':         cmap(5),
+        'A': cmap(0),
+        'H': cmap(1),
+        'E': cmap(2),
+        'S': cmap(3),
+        'P': cmap(4),
+        'B': cmap(5),
     }
     default_color = 'gray'
 
@@ -254,7 +254,7 @@ def test():
         edgecolors='black',
         edge_color='black',
         width=2.0,         
-        font_size=8,       
+        font_size=16,       
         font_weight='bold'
     )
 
@@ -272,9 +272,14 @@ def test():
 
     fig, axes = plt.subplots(2,5, figsize=(20, 10))
     axes=axes.flatten()
+
+    classes=['background', 'wall', 'doorway', 'window', 
+             'appartment_unit', 'hallway', 'elevator', 
+             'stairwell', 'public_amenity', 'balcony']
+
     for i in range(10):
         axes[i].imshow(sep_masks[i], cmap='jet')
-        axes[i].set_title(f'Mask #{i}')
+        axes[i].set_title(f'{classes[i]}')
         axes[i].axis('off')
     
     plt.tight_layout()

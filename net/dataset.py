@@ -95,7 +95,6 @@ class FloorplanDataset(Dataset):
             wall_mask = mask_transform(wall_mask_np).long().squeeze(0) # [1, H, W] -> [H, W]
             room_mask = mask_transform(room_mask_np).long().squeeze(0) # [1, H, W] -> [H, W]
         else:
-            # Convert to tensors without transformation
             image = transforms.ToTensor()(image)  # [C, H, W]
             wall_mask = torch.tensor(wall_mask_np, dtype=torch.long)  # [H, W]
             room_mask = torch.tensor(room_mask_np, dtype=torch.long)  # [H, W]

@@ -14,11 +14,7 @@ def get_embedding(image_file):
     image = cv2.imdecode(image_data, cv2.IMREAD_COLOR)
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    # Set image in SAM predictor
     predictor.set_image(image_rgb)
-
-    # Compute embedding
     embedding = predictor.get_image_embedding().cpu().numpy()  # Shape: [1, 256, 64, 64]
 
-    # Convert embedding to bytes
     return embedding.astype(np.float32).tobytes()

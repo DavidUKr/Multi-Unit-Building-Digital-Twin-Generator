@@ -154,8 +154,8 @@ def file_to_image(image_file, tranform_to_rgb=False, to_PIL_Image=False):
 
 def reconstruct(tiles, full_width, full_height, tiles_width, tiles_height):
     # Calculate tile sizes (accounting for uneven divisions)
-    base_tile_width = full_width // tiles_width  # Base width for most tiles
-    base_tile_height = full_height // tiles_height  # Base height for most tiles
+    base_tile_width = full_width // tiles_width 
+    base_tile_height = full_height // tiles_height
 
     # Store tile sizes for each position
     tile_widths = [base_tile_width] * tiles_width
@@ -170,13 +170,9 @@ def reconstruct(tiles, full_width, full_height, tiles_width, tiles_height):
 
     for y in range(tiles_height):
         for x in range(tiles_width):
-            tile=tiles[f'row_{y}'][f'column_{x}'] #TODO: check the structure of tiles
-
-            # Calculate the paste position
+            tile=tiles[f'row_{y}'][f'column_{x}']
             paste_x = x * base_tile_width
             paste_y = y * base_tile_height
-            
-            # Paste the tile onto the reconstructed image
             reconstructed_image.paste(tile, (paste_x, paste_y))
 
     return reconstructed_image
